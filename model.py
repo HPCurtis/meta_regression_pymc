@@ -5,7 +5,7 @@ import sys
 
 def meta_reg(X, y):
     """
-    Perform QR regression using PyMC.
+    Perform meta regression using QR decompostion parameterisation PyMC.
     
     Parameters:
     X : np.ndarray
