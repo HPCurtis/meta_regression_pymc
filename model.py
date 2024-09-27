@@ -40,7 +40,7 @@ def meta_reg(X, y):
 
         # Return calculated valeus using pm.Deterministic
         beta = pm.Deterministic("beta", R_inverse @ theta)
-        trace = pm.sample()
+        trace = pm.sample(nuts_sampler="nutpie")
         return trace, model
 
 
