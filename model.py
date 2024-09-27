@@ -3,7 +3,7 @@ from numpy.linalg import qr, inv, LinAlgError
 from numpy import sqrt
 import sys
 
-def meta_reg(X, y):
+def meta_reg(X, y, ysd):
     """
     Perform meta regression using QR decompostion parameterisation PyMC.
     
@@ -30,13 +30,13 @@ def meta_reg(X, y):
         # coefficients on Q_as
         alpha = pm.Flat("alpha")
         theta = pm.Flat("theta",shape = X.shape[1])
-        sigma = pm.Flat("sigma")
+        
         # Matrix mutlitple
         mu = pm.Deterministic("mu",
                               alpha + pm.math.dot(Q, theta) )
 
         # Likelihood
-        likelihood = pm.Normal("y",mu = mu, sigma = sigma,  observed=y)
+        likelihood = pm.Normal("y",mu = mu, sigma = ysd,  observed=y)
 
         # Return calculated valeus using pm.Deterministic
         beta = pm.Deterministic("beta", R_inverse @ theta)
