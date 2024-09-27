@@ -9,7 +9,7 @@ def meta_reg(X, y):
     
     Parameters:
     X : np.ndarray
-        Design matrix (predictors).
+        Design matrix (predictors only i.e. no intercept term as qr decomp will not run).
     y : np.ndarray
         Response vector.
 
