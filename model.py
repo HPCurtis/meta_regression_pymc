@@ -32,17 +32,20 @@ def meta_reg(X, y, ysd):
         theta = pm.Flat("theta",shape = X.shape[1])
         
         # Matrix mutlitple
-        mu = pm.Deterministic("mu",
+        mu_qr = pm.Deterministic("mu_qr",
                               alpha + pm.math.dot(Q, theta) )
 
         # Likelihood
-        likelihood = pm.Normal("y",mu = mu, sigma = ysd,  observed=y)
+        likelihood = pm.Normal("y",mu = mu_qr, sigma = ysd,  observed=y)
 
         # Return calculated valeus using pm.Deterministic
         beta = pm.Deterministic("beta", R_inverse @ theta)
-        trace = pm.sample(nuts_sampler="nutpie")
-        return trace, model
+        # Calculate mu on orignal scale.
+        mu = pm.Deterministic("mu", alpha + X @ beta )
 
+        trace = pm.sample(nuts_sampler="numpyro")
+        pm.compute_log_likelihood(trace)
+        return trace, model
 
 def qr_decomp_scale(X, N):
     try:
@@ -87,10 +90,10 @@ def main():
 
     # Compute y = a + X @ b (where @ denotes matrix multiplication)
     true_regression_line = true_intercept + X @ b
-
-    y = true_regression_line + rng.normal(scale=0.5, size=size)
+    ysd = rng.normal(scale=0.5, size=size)
+    y = true_regression_line+ysd
    
-    trace, model = meta_reg(X, y)
+    trace, model = meta_reg(X, y,ysd)
     print(az.summary(trace, var_names=["alpha", "beta"]))
 
 if __name__ == "__main__":
