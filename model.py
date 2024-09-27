@@ -48,10 +48,10 @@ def meta_reg(X, y):
         try:
             # Calculate the thin qr decompositon and the inverse of upper-triangular matrix R (defualt fucntion behaviour).
             Q,R = qr(X)
-            # Scale Q and R
+            # Scale Q and R.
             Q = Q * sqrt(N - 1)
             R = R / sqrt(N - 1)
-            # Calculate the inverse of the upper triangulr scaled R matrix from qr decomps 
+            # Calculate the inverse of the upper triangulr scaled R matrix from qr_decompisition. 
             R_inverse = inv(R)
             return Q,R,R_inverse
         
@@ -61,7 +61,7 @@ def meta_reg(X, y):
         except ValueError:
             sys.exit()
 
-# Defien main fucntion for testin of model.
+# Define main fucntion for testing of model.
 def main():
 
     # Simualtion tes tof the model based on 
@@ -89,15 +89,7 @@ def main():
     true_regression_line = true_intercept + X @ b
 
     y = true_regression_line + rng.normal(scale=0.5, size=size)
-    """
-    N = len(y) 
-    # Calculate the thin qr decompositon and the inverse of upper-triangular matrix R (defualt fucntion behaviour).
-    Q,R = qr(X) 
-    Q = Q * sqrt(N - 1)
-    R = R / sqrt(N - 1)
-    print(Q.shape)
-    print(R.shape)
-    """
+   
     trace, model = meta_reg(X, y)
     print(az.summary(trace, var_names=["alpha", "beta"]))
 
