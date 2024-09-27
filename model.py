@@ -1,6 +1,6 @@
 import pymc as pm
 from numpy.linalg import qr, inv, LinAlgError
-from numpy import sqrt
+from numpy import sqrt,square
 import sys
 
 def meta_reg(X, y, ysd):
@@ -23,20 +23,23 @@ def meta_reg(X, y, ysd):
     N = len(y) 
     Q,R,R_inverse = qr_decomp_scale(X, N)
 
+    # 
+    se2=square(ysd)
+
     # Define the pymc model for linear regression with qr decomp based heavily on 
     # https://mc-stan.org/docs/stan-users-guide/regression.html#QR-reparameterization.section
     with pm.Model() as model:
         # Priors
         # coefficients on Q_as
-        alpha = pm.Flat("alpha")
+        alpha = pm.StudentT("alpha", nu=3, mu=0.7, sigma=2.5)
         theta = pm.Flat("theta",shape = X.shape[1])
-        
+        sigma =pm.StudentT("sigma", nu=3, mu=0, sigma=2.5)
         # Matrix mutlitple
         mu_qr = pm.Deterministic("mu_qr",
                               alpha + pm.math.dot(Q, theta) )
 
         # Likelihood
-        likelihood = pm.Normal("y",mu = mu_qr, sigma = ysd,  observed=y)
+        likelihood = pm.Normal("y", mu = mu_qr, sigma = sqrt(square(sigma)+ se2),  observed=y)
 
         # Return calculated valeus using pm.Deterministic
         beta = pm.Deterministic("beta", R_inverse @ theta)
@@ -58,7 +61,7 @@ def qr_decomp_scale(X, N):
         R_inverse = inv(R)
         return Q,R,R_inverse
     
-    # Handle error when matrxi is not presneted
+    # Handle error when X is not a matrix.
     except LinAlgError:
         sys.exit("Input to qr_decomp_scale is not a matrix") 
     except ValueError:
