@@ -21,6 +21,7 @@ def meta_reg(X, y):
     """
     # Get the len of the y variable
     N = len(y) 
+    Q,R,R_inverse = qr_decomp_scale(X)
 
     # Define the pymc model for linear regression with qr decomp based heavily on 
     # https://mc-stan.org/docs/stan-users-guide/regression.html#QR-reparameterization.section
@@ -52,13 +53,14 @@ def meta_reg(X, y):
             R = R / sqrt(N - 1)
             # Calculate the inverse of the upper triangulr scaled R matrix from qr decomps 
             R_inverse = inv(R)
+            return Q,R,R_inverse
         
         # Handle error when matrxi is not presneted
         except LinAlgError:
             sys.exit("Input to qr_decomp_scale is not a matrix") 
         except ValueError:
             sys.exit()
-            
+
 # Defien main fucntion for testin of model.
 def main():
 
