@@ -1,6 +1,7 @@
 import pymc as pm
-from numpy.linalg import qr, inv
+from numpy.linalg import qr, inv, LinAlgError
 from numpy import sqrt
+import sys
 
 def meta_reg(X, y):
     """
@@ -18,14 +19,8 @@ def meta_reg(X, y):
     model : pm.Model
         The PyMC model object.
     """
-
+    # Get the len of the y variable
     N = len(y) 
-    # Calculate the thin qr decompositon and the inverse of upper-triangular matrix R (defualt fucntion behaviour).
-    Q,R = qr(X) 
-    # Scale Q and R
-    Q = Q * sqrt(N - 1)
-    R = R / sqrt(N - 1)
-    R_inverse = inv(R)
 
     # Define the pymc model for linear regression with qr decomp based heavily on 
     # https://mc-stan.org/docs/stan-users-guide/regression.html#QR-reparameterization.section
@@ -48,6 +43,23 @@ def meta_reg(X, y):
         return trace, model
 
 
+    def qr_decomp_scale(X):
+        try:
+            # Calculate the thin qr decompositon and the inverse of upper-triangular matrix R (defualt fucntion behaviour).
+            Q,R = qr(X)
+            # Scale Q and R
+            Q = Q * sqrt(N - 1)
+            R = R / sqrt(N - 1)
+            # Calculate the inverse of the upper triangulr scaled R matrix from qr decomps 
+            R_inverse = inv(R)
+        
+        # Handle error when matrxi is not presneted
+        except LinAlgError:
+            sys.exit("Input to qr_decomp_scale is not a matrix") 
+        except ValueError:
+            sys.exit()
+            
+# Defien main fucntion for testin of model.
 def main():
 
     # Simualtion tes tof the model based on 
@@ -62,9 +74,12 @@ def main():
     true_slope = 2
     true_slope2 = 3
 
-    array1 = np.linspace(0, 1, size)
-    array2 = np.linspace(0, 1, size)
-    X =  np.column_stack((array1, array2))
+    mean = 0   # Mean of the distribution
+    std_dev = 1  # Standard deviation of the distribution
+    array1 = np.random.normal(mean, std_dev, size)
+    array2 = np.random.normal(mean, std_dev, size)
+    # Stack the arrays column-wise
+    X = np.column_stack((array1, array2))
 
     b = np.array([true_slope, true_slope2])
 
@@ -72,7 +87,7 @@ def main():
     true_regression_line = true_intercept + X @ b
 
     y = true_regression_line + rng.normal(scale=0.5, size=size)
-
+    """
     N = len(y) 
     # Calculate the thin qr decompositon and the inverse of upper-triangular matrix R (defualt fucntion behaviour).
     Q,R = qr(X) 
@@ -80,8 +95,9 @@ def main():
     R = R / sqrt(N - 1)
     print(Q.shape)
     print(R.shape)
-    #trace, model = meta_reg(X, y)
-    #print(az.summary(trace, var_names=["alpha", "beta"]))
+    """
+    trace, model = meta_reg(X, y)
+    print(az.summary(trace, var_names=["alpha", "beta"]))
 
 if __name__ == "__main__":
     main()
