@@ -1,2 +1,2 @@
-# Meta Regression PyMC
+# Meta Regression with PyMC
 
