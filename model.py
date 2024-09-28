@@ -1,6 +1,6 @@
 import pymc as pm
 from numpy.linalg import qr, inv, LinAlgError
-from numpy import sqrt,square
+from numpy import sqrt,square, shape, std, exp
 import sys
 
 def meta_reg(X, y, ysd):
@@ -21,6 +21,12 @@ def meta_reg(X, y, ysd):
     """
     # Get the len of the y variable
     N = len(y) 
+    K = shape(X)[1]
+    half_K = .5 * K
+    s_Y = std(y) 
+    eta = .5
+    sqrt_Nm1 = sqrt(N - 1.0)
+
     Q,R,R_inverse = qr_decomp_scale(X, N)
 
     # 
@@ -32,9 +38,20 @@ def meta_reg(X, y, ysd):
         # Priors
         # coefficients on Q_as
         alpha = pm.StudentT("alpha", nu=3, mu=0.7, sigma=2.5)
-        theta = pm.Flat("theta",shape = X.shape[1])
-        sigma =pm.StudentT("sigma", nu=3, mu=0, sigma=2.5)
-        # Matrix mutlitple
+        log_omega = pm.Flat("log_omega")
+        R2 = pm.Beta("Beta", half_K, eta)
+        u_raw = pm.Flat('u_raw', shape=K)
+        
+        # Defien or generated quantities
+        # Normalize the vector to have unit length
+        u_unit = u_raw / pm.math.sqrt(pm.math.sum(u_raw**2))
+    
+        # Add a deterministic node to keep track of the unit vector
+        u = pm.Deterministic('unit_vector', u_unit)
+
+        delta_y = pm.Deterministic("delta_y", s_Y * exp(log_omega))
+        theta = pm.Deterministic("theta", u * sqrt(R2) * sqrt_Nm1 * delta_y)
+        sigma = pm.Deterministic("sigma", delta_y * sqrt(1 - R2))
         mu_qr = pm.Deterministic("mu_qr",
                               alpha + pm.math.dot(Q, theta) )
 
@@ -42,7 +59,7 @@ def meta_reg(X, y, ysd):
         likelihood = pm.Normal("y", mu = mu_qr, sigma = sqrt(square(sigma)+ se2),  observed=y)
 
         # Return calculated valeus using pm.Deterministic
-        beta = pm.Deterministic("beta", R_inverse @ theta)
+        beta = pm.Deterministic("beta", pm.math.dot(R_inverse, theta))
         # Calculate mu on orignal scale.
         mu = pm.Deterministic("mu", alpha + X @ beta )
 
