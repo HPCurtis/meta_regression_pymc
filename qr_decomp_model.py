@@ -5,7 +5,7 @@ import sys
 
 def meta_reg(X, y, ysd):
     """
-    Perform meta regression using QR decompostion parameterisation PyMC.
+    Perform regression using QR decompostion parameterisation PyMC.
     
     Parameters:
     X : np.ndarray
@@ -27,22 +27,24 @@ def meta_reg(X, y, ysd):
     eta = .5
     sqrt_Nm1 = sqrt(N - 1.0)
 
-    Q,R,R_inverse = qr_decomp_scale(X, N)
+    Q,_,R_inverse = qr_decomp_scale(X, N)
 
     # 
     se2=square(ysd)
 
     # Define the pymc model for linear regression with qr decomp based heavily on 
     # https://mc-stan.org/docs/stan-users-guide/regression.html#QR-reparameterization.section
+    # https://github.com/stan-dev/rstanarm/blob/master/src/stan_files/lm.stan
     with pm.Model() as model:
         # Priors
         # coefficients on Q_as
         alpha = pm.StudentT("alpha", nu=3, mu=0.7, sigma=2.5)
         log_omega = pm.Flat("log_omega")
         R2 = pm.Beta("Beta", half_K, eta)
-        u_raw = pm.Flat('u_raw', shape=K)
+
+         # Define or generated quantities
+        u_raw = pm.Flat("u_raw", shape=K)
         
-        # Defien or generated quantities
         # Normalize the vector to have unit length
         u_unit = u_raw / pm.math.sqrt(pm.math.sum(u_raw**2))
     
@@ -63,7 +65,7 @@ def meta_reg(X, y, ysd):
         # Calculate mu on orignal scale.
         mu = pm.Deterministic("mu", alpha + X @ beta )
 
-        trace = pm.sample(nuts_sampler="numpyro")
+        trace = pm.sample(nuts_sampler="nutpie")
         pm.compute_log_likelihood(trace)
         return trace, model
 
